@@ -1,0 +1,8 @@
+
+load -ASCII palDocsOk.txt
+load -ASCII palTopicsOk.txt
+
+[K,Kc,Ks] = laplacianLogit(palDocsOk, 7);
+
+[pos,P,J,gamma] = kernel_fuzzy_db(K, 2, 1.2)
+%[pos,J,gamma] = kernel_db(K,2)

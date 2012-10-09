@@ -1,0 +1,13 @@
+a = +0.2;
+b = -0.1;
+
+uan = 0.7;
+ubn = 0.3;
+
+for i=1:10
+    ua = (uan*a)^2;
+    ub = (ubn*b)^2;
+    
+    uan = ua/(ua+ub)
+    ubn = ub/(ua+ub)
+end;

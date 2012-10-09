@@ -1,0 +1,53 @@
+import sys
+import os
+import re
+import scipy.io as sio
+from numpy import *
+
+def main(fileExp, dirname):
+	dataStruct = dict()
+	datasetLabel = list()
+	kernelLabel = list()
+	perfLabel = list()
+	fileList = os.listdir(dirname)
+	for f in fileList:
+		if re.match('news', f):
+			datasetLabel.append(f.split('_')[1])
+			#dataset = datasetLabel.rstrip('cl')
+			kernelLabel.append(re.findall((r"^[0-9](\w+).mat", f.split('_')[2]))
+			
+			matcontent = sio.loadmat(f)
+			results = mat_content['resultsExp']
+
+def main2(fileExp):
+	dataStruct = zeros((3,6,6))
+	for d, dataset in enumerate(['2cl', '3cl', '5cl']):
+		for k, kernel in enumerate(['laplacianlogit', 'sopdistance', 'modularity', 'potential', 'surprisingHittingPath', 'distanceHittingPath', 'modularityHittingPath'])
+			for p in range(6):
+				dataStruct[d, k, p] = sio.loadmat(f)['resultsExp'][0][p]
+	return dataStruct, dataset, kernel
+
+def barChart(dataStruct, perfMeasure=2):
+	N = dataStruct.shape[0] #Number of dataset
+	ind = arange(N) #the x location for the group
+	width = 0.1
+	colors = ['r', '#ff9600', 'y', 'g', 'c', 'b']
+	
+	bars = list()
+	count = 0
+	plt.subplot(111)
+	
+	for k in range(dataStruct.shape[1]):
+		means = list()
+		for d in range(dataStruct.shape[0]):
+			means.append(results[d, k, perfMeasure]
+		
+		bars.append(plt.bar(ind+(count*width), means, width, color=colors[count]))
+		count+=1
+
+	plt.ylabel = 'lol'
+	plt.title = ('Title')
+	plt.xticks = (ind+width, ('News 3cl 1', 'News 3cl 2', 'News 3cl 3'))
+
+	plt.show()
+

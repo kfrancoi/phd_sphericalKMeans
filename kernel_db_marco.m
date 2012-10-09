@@ -1,0 +1,141 @@
+function [cluster,J,H]=kernel_db_marco(K,m)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Kernel k-means clustering
+%
+% INPUT ARGUMENTS
+% K: the (n x n) kernel matrix
+% m: number of clusters to be found
+%
+% OUTPUT ARGUMENTS
+% cluster: a (n x 1) vector containing the cluster index of each node
+% J: a (n_iterations x 1) vector containing the evolution of the within-cluster
+% inertia criterion during iterations
+% H: the (n x m) prototypes matrix containing the prototypes of each
+% cluster as columns
+%
+% AUTHORS: L. Yen, S. Garcia & M. Saerens
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Maximum number of iterations
+maxIters = 100;
+% Small value that avoids 1/0
+epsilon = 1e-9;
+
+[nr,nc] = size(K);
+n = nr;
+if nr ~= nc
+    error('Non-square matrix!');
+end
+
+Jold = compute_criterion(K,(ones(n,1)),(ones(n,1)/n)); % total inertia of the whole data set
+J = [Jold];
+
+Qnew = compute_modularity(K,(ones(n,1)));
+Q = [Qnew];
+
+% Initialization of the prototype vectors
+p = randperm(n);
+I = eye(n);
+H = I(:,p(1:m));
+
+for i = 1:maxIters
+    % Computation of the distances of the nodes to the cluster prototypes,
+    % in the embedded space
+    for k = 1:m
+        hKh = H(:,k)' * K * H(:,k);
+        for i = 1:n
+            kh = (K(i,:) * H(:,k)) + (H(:,k)' * K(:,i));
+            Dist(i,k) = epsilon + K(i,i)+ hKh - kh;
+        end
+    end
+    
+    % We choose the class of a node according to the calculated distances
+    [val,cluster] = min(Dist,[],2); % cluster contains the assigned cluster indexes, according to current prototypes
+    U = zeros(n,m);
+    for i = 1:n
+        U(i,cluster(i)) = 1;
+    end
+
+    % We count the number of observations of each cluster and compute new
+    % prototypes
+    Hold = H;
+    numb  = sum(U,1);
+    for k = 1:m
+        H(:,k) = U(:,k)./numb(k);
+    end
+    
+    % Compute the new within-inertia criterion
+    Jold = J(end);
+    Jnew = compute_criterion(K,U,H);
+    Qnew = compute_modularity(K,U);
+    
+    if (~isempty(J)) && (Jnew > Jold)
+    	 er = 'ALERT'; %  the within-cluster inertia should always decrease
+    end
+    J = [J; Jnew];
+    Q = [Q; Qnew];
+    %Jnew
+    %Jold
+    %abs(Jnew - Jold)
+    if (abs(Jnew - Jold)/abs(Jold)) < 1e-4
+        break
+    end     
+end
+%J
+%Q
+return
+
+
+function J = compute_criterion(K,U,H)
+
+[nr,nc] = size(K);
+if (nr ~= nc)
+    error('Non-square matrix K !');
+else
+    n = nr;
+end
+
+[nr,nc] = size(H);
+m = nc;
+if (nr ~= n)
+    error('The H matrix and K matrix are incompatible !'); 
+end
+
+[nr,nc] = size(U);
+if ~( (nr == n) && (nc == m) )
+    error('The H matrix and U matrix are incompatible !');
+end
+
+I = eye(n,n);
+J = 0;
+for i = 1:n
+    for k = 1:m
+        J = J + U(i,k) * (H(:,k) - I(:,i))' * K * (H(:,k) - I(:,i));
+    end
+end
+return
+    
+
+function Q = compute_modularity(K,U)
+
+[nr,nc] = size(K);
+if (nr ~= nc)
+    error('Non-square matrix K !');
+else
+    n = nr;
+end
+
+[nr,nc] = size(U);
+m = nc;
+if (nr ~= n)
+    error('The U matrix and K matrix are incompatible !'); 
+end
+
+I = eye(n,n);
+Q = 0;
+for k = 1:m
+    Q = Q + U(:,k)' * K * U(:,k);
+end
+return
+
+    

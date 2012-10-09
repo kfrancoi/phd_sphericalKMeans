@@ -1,0 +1,107 @@
+function SoPstruct = sopRelatedness03(A0,theta,absorbingID);
+% The SoP structure:
+%
+% - A0 is a square adjacency matrix.
+%   The elements of A0 are positive and represent affinities between nodes.
+%   If it is impossible to jump from node k to node l, A0(k,l) = 0,
+%   which corresponds to an infinite cost.
+%   Each node j is supposed to be reachable from each node i.
+%
+% 
+% - theta  = 1;       %% theta must lie between eps (= 0.00000001) and 20.0.
+%                     %% If theta = 0, we obtain the expected cost between
+%                     %% i and j.
+%                     %% If theta = INFINITY, we obtain the shortest-path kernel.
+%
+% - absorbingID = 1;  %% = 1 if "graph with an absorbing state" (default
+%                     %%     value).
+%                     %% = 0 if "graph without any absorbing state".
+%
+% Returns SoPstruct: the SoP structure containing:
+%  - MEstruct.K: the relatedness probability similarity matrix.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+eps   = 1000000 * realmin;
+myMax = realmax;
+
+[nr,nc] = size(A0);
+
+if (nr ~= nc)
+    fprintf('Error: The cost matrix is not square !\n');
+    return;
+end;
+
+if (theta < eps) || (theta > 20.0)
+    fprintf('Error: The value of theta is out of the admissible range [%g,20.0] !\n',eps);
+    return;
+end;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    e = ones(nr,1);
+    I = eye(nr);
+    H = I - e*e'/nr;
+    
+    % Computation of the cost matrix C (inverse of affinities)
+    C  = A0;
+    C(A0 >= eps) = 1./(A0(A0 >= eps));
+    C(C < eps)   = myMax;
+    A0(A0 < eps) = 0;
+
+    % Computation of P, the reference transition probabilities matrix
+    % representing the natural random walk on the graph
+    P = costToPtrans01(C,eps);
+    
+    % Computation of the W matrix
+    W = exp(-theta * C) .* P;.0
+    % W = exp(-theta * C);
+    
+    % Computation of the Z matrix
+    Z   = (I - W)\I; % = inv(I - W) % Matrix inverse-based method
+                     % paths of length zero are taken into account
+    
+    Za = zeros(nc,nr);
+    if (absorbingID == 1) % Absorbing state probability
+        da = diag(Z);
+        Za  = Z ./ (e*da');
+    else % Non absorbing state probability
+        Za = Z;
+    end;
+
+    z   = sum(sum(Za));
+    K   = Za/z; % The bag of paths or hitting paths probability matrix
+    Ks  = (K + K')/2; % Symmetrize the bag of paths or hitting paths probability matrix
+    
+    % Modularity matrix and mutual information matrix
+    Km  = Ks;%Ks; %MODIF KEV 03/01/12 (Ks : With syumetrization, K : without symetrization)
+    di  = sum(Km,1);
+    do  = sum(Km,2);
+    D   = do * di;
+    %Ken = log(Km);
+    Ken = (log(Km) - log(D)); % Mutual information matrix
+    
+    Kae = (Km.*(log(Km) - log(D)));
+    Km  = (Km - D); % Modularity matrix
+    
+    
+    %Removing diagonal
+    
+    
+    Kd  = K;%Ks; %MODIF KEV 03/01/12
+    Kd(Kd < eps) = eps;
+    D   = -log(Kd + eps); % Bag of paths or hitting paths distance
+    D   = 0.5 * (D + D'); % Symmetrize the distance
+    D   = D - diag(diag(D)); % Set diagonal to zero
+    Kd  = -0.5 * H*D*H; % Kernel associated to the bag of paths distances
+    Di  = diag(diag(Kd));
+    Kdn = (Di^-0.5)*Kd*(Di^-0.5); % Normalized kernel associated to the bag of paths distance
+         
+SoPstruct.K   = K; % The bag of paths or hitting paths probability matrix
+SoPstruct.Ks  = Ks; % Symmetrized bag of paths or hitting paths probability matrix
+SoPstruct.Kn  = K - (e*e'/(nr*nc)); % Deviation from complete independence
+SoPstruct.Kc  = H*K*H; % Centered bag of paths or hitting paths probability matrix
+SoPstruct.Kd  = Kd; % Kernel associated to the bag of paths distance
+SoPstruct.Kdn = Kdn; % Normalized kernel associated to the bag of paths distance
+SoPstruct.Km  = Km; % The bag of paths or hitting paths modularity matrix (symmetrized)
+SoPstruct.Ken = Ken; % The bag of paths or hitting paths elementwise mutual information matrix (symmetrized)
+SoPstruct.Kae = Kae; % The true bag of paths or hitting paths elementwise mutual information matrix (symmetrized)
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

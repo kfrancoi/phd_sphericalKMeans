@@ -1,0 +1,24 @@
+function J = compute_criterion(K,U,H)
+
+[nr,nc] = size(K);
+if nr ~= nc
+    error('Non-square matrix !');
+else
+    n = nr;
+end
+
+[nr,nc] = size(H);
+m = nc;
+if nr ~= n
+    error('H matrix and K matrix are incompatible !'); 
+end
+
+
+I = eye(n,n);
+J = 0;
+for i = 1:n
+    for k = 1:m
+        J = J + U(i,k) * (H(:,k) - I(:,i))' * K * (H(:,k) - I(:,i));
+    end
+end
+return
